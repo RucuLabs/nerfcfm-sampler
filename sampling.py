@@ -359,6 +359,8 @@ def select_images(descriptors, nombres, num_descriptors=300, distance_metric='eu
 
 
 def copy_selected_images(input_directory, output_directory, representative_images):
+    """Function copies the selected images of the proccess into another folder.
+    """
     # Ensure the destination directory exists or create it if not
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -375,6 +377,8 @@ def copy_selected_images(input_directory, output_directory, representative_image
 
 
 def delete_non_selected_files(selected_images, source_directory):
+    """Function deletes the images that were not selected.
+    """
     if not os.path.exists(source_directory):
         print("Source directory does not exist.")
         return
@@ -389,10 +393,26 @@ def delete_non_selected_files(selected_images, source_directory):
             os.remove(file_path)
             print(f"Deleted: {file_path}")
 
+def convert_to_video(input_folder, video_name):
+    """Function that creates a video of the images for nerf studio.
+    """
+    images = [img for img in os.listdir(input_folder) if img.endswith(".jpg")]
+    images.sort()
+
+    frame = cv2.imread(os.path.join(input_folder, images[0]))
+    height, width, layers = frame.shape
+
+    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
+
+    for image in images:
+        video.write(cv2.imread(os.path.join(input_folder, image)))
+
+    cv2.destroyAllWindows()
+    video.release()
+
 
 def sampling(input_video, metodo_descriptor, frame_rate=1, distance_metric="euclidean"):
     
-    # tmp = f"tmp--{os.path.splitext(os.path.basename(input_video))[0]}--{metodo_descriptor.__name__}"
     tmp = "tmp"
     final = f"{os.path.splitext(os.path.basename(input_video))[0]}--{metodo_descriptor.__name__}"
     get_frames(input_video, final, frame_rate)
@@ -402,11 +422,8 @@ def sampling(input_video, metodo_descriptor, frame_rate=1, distance_metric="eucl
 
     # print("imágenes({})=\n  {}".format(len(nombres), nombres))
     # print("\nmatriz de descriptores(filas={},cols={},cada fila representa una imagen)=\n{}".format(descriptores.shape[0], descriptores.shape[1], descriptores))
-
     # matriz_distancias = scipy.spatial.distance.cdist(descriptores, descriptores, metric=distance_metric)
-
     # print("matriz de distancias ({}x{},todos contra todos)=\n{}".format(matriz_distancias.shape[0],matriz_distancias.shape[1],matriz_distancias))
-
     # imprimir_cercanos(nombres, matriz_distancias)
 
     representative_images = select_images(descriptores, nombres, distance_metric=distance_metric)
@@ -414,5 +431,6 @@ def sampling(input_video, metodo_descriptor, frame_rate=1, distance_metric="eucl
     # copy_selected_images(tmp, final, representative_images)
     delete_non_selected_files(representative_images, final)
 
-# sampling("./videos/gato.MOV", vector_de_intensidades, distance_metric="euclidean")
-sampling("./videos/capi.MOV", vector_de_intensidades, distance_metric="euclidean")
+    convert_to_video(final, f"{final}.mp4")
+
+sampling("./videos/capi.MOV", hog, frame_rate=1, distance_metric="euclidean")
